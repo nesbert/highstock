@@ -1,0 +1,37 @@
+{
+  "name": "highstock",
+  "version": "1.3.2",
+  "description": "Highstock lets you create stock or general timeline charts in pure JavaScript, including sophisticated navigation options like a small navigator series, preset date ranges, date picker, scrolling and panning.",
+  "homepage": "http://www.highcharts.com/products/highstock",
+  "keywords": [
+    "highcharts",
+    "charts",
+    "javascript charts",
+    "ajax charts",
+    "javascript charting",
+    "ajax charting",
+    "js charts",
+    "js charting",
+    "html5 charts",
+    "html5 charting",
+    "plots",
+    "line charts",
+    "bar charts",
+    "pie charts",
+    "javascript plots",
+    "ajax plots",
+    "waterfall",
+    "bubble chart",
+    "scatter chart",
+    "pie chart",
+    "stock charts",
+    "highstock"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/highslide-software/highcharts.com.git"
+  },
+  "main": [
+    "highstock.js"
+  ]
+}
