@@ -2,7 +2,7 @@
 // @compilation_level SIMPLE_OPTIMIZATIONS
 
 /**
- * @license Highcharts JS v3.0.3 (2013-07-31)
+ * @license Highcharts JS v3.0.4 (2013-08-02)
  *
  * (c) 2009-2013 Torstein Hønsi
  *
@@ -1702,7 +1702,7 @@ defaultPlotOptions.bubble = merge(defaultPlotOptions.scatter, {
 	tooltip: {
 		pointFormat: '({point.x}, {point.y}), Size: {point.z}'
 	},
-	turboThreshold: 0, // docs: exclude from bubbles
+	turboThreshold: 0,
 	zThreshold: 0
 });
 
@@ -2011,9 +2011,11 @@ seriesProto.orderTooltipPoints = function (points) {
 		});
 
 		// Wrap mouse tracking around to capture movement on the segment to the left
-		// of the north point (#1469).
-		points[0].wrappedClientX = points[0].clientX + 360;
-		points.push(points[0]);
+		// of the north point (#1469, #2093).
+		if (points[0]) {
+			points[0].wrappedClientX = points[0].clientX + 360;
+			points.push(points[0]);
+		}
 	}
 };
 

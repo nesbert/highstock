@@ -2,7 +2,7 @@
 // @compilation_level SIMPLE_OPTIMIZATIONS
 
 /**
- * @license Highstock JS v1.3.3 (2013-07-31)
+ * @license Highstock JS v1.3.4 (2013-08-02)
  *
  * (c) 2009-2013 Torstein Hønsi
  *
@@ -55,7 +55,7 @@ var UNDEFINED,
 	noop = function () {},
 	charts = [],
 	PRODUCT = 'Highstock',
-	VERSION = '1.3.3',
+	VERSION = '1.3.4',
 
 	// some constants for frequently used strings
 	DIV = 'div',
@@ -1505,8 +1505,8 @@ defaultOptions = {
 	},
 	global: {
 		useUTC: true,
-		canvasToolsURL: 'http://code.highcharts.com/stock/1.3.3/modules/canvas-tools.js',
-		VMLRadialGradientURL: 'http://code.highcharts.com/stock/1.3.3/gfx/vml-radial-gradient.png'
+		canvasToolsURL: 'http://code.highcharts.com/stock/1.3.4/modules/canvas-tools.js',
+		VMLRadialGradientURL: 'http://code.highcharts.com/stock/1.3.4/gfx/vml-radial-gradient.png'
 	},
 	chart: {
 		//animation: true,
@@ -6223,7 +6223,7 @@ PlotLineOrBand.prototype = {
 						optionsLabel.text,
 						0,
 						0,
-						optionsLabel.useHTML // docs: useHTML for plotLines and plotBands
+						optionsLabel.useHTML
 					)
 					.attr({
 						align: optionsLabel.textAlign || optionsLabel.align,
@@ -6260,13 +6260,11 @@ PlotLineOrBand.prototype = {
 	 * Remove the plot line or band
 	 */
 	destroy: function () {
-		var plotLine = this,
-			axis = plotLine.axis;
-
 		// remove it from the lookup
-		erase(axis.plotLinesAndBands, plotLine);
-
-		destroyObjectProperties(plotLine, this.axis);
+		erase(this.axis.plotLinesAndBands, this);
+		
+		delete this.axis;
+		destroyObjectProperties(this);
 	}
 };
 /**
@@ -7935,7 +7933,8 @@ Axis.prototype = {
 			n,
 			i,
 			autoStaggerLines = 1,
-			maxStaggerLines = pick(labelOptions.maxStaggerLines, 5), // docs
+			maxStaggerLines = pick(labelOptions.maxStaggerLines, 5),
+			sortedPositions,
 			lastRight,
 			overlap,
 			pos,
@@ -7979,12 +7978,13 @@ Axis.prototype = {
 
 			// Handle automatic stagger lines
 			if (axis.horiz && !axis.staggerLines && maxStaggerLines && !labelOptions.rotation) {
+				sortedPositions = axis.reversed ? [].concat(tickPositions).reverse() : tickPositions;
 				while (autoStaggerLines < maxStaggerLines) {
 					lastRight = [];
 					overlap = false;
 					
-					for (i = 0; i < tickPositions.length; i++) {
-						pos = tickPositions[i];
+					for (i = 0; i < sortedPositions.length; i++) {
+						pos = sortedPositions[i];
 						bBox = ticks[pos].label && ticks[pos].label.bBox;
 						w = bBox ? bBox.width : 0;
 						lineNo = i % autoStaggerLines;
@@ -8443,11 +8443,8 @@ Axis.prototype = {
 			return;
 		}
 
-		var series = this.series,
-				last = series.length - 1;
-
-		each(series, function (serie, i) {
-			serie.setStackedPoints(i === last);
+		each(this.series, function (series) {
+			series.setStackedPoints();
 		});
 	},
 
@@ -8466,7 +8463,9 @@ Axis.prototype = {
 	destroy: function (keepEvents) {
 		var axis = this,
 			stacks = axis.stacks,
-			stackKey;
+			stackKey,
+			plotLinesAndBands = axis.plotLinesAndBands,
+			i;
 
 		// Remove the events
 		if (!keepEvents) {
@@ -8481,9 +8480,13 @@ Axis.prototype = {
 		}
 
 		// Destroy collections
-		each([axis.ticks, axis.minorTicks, axis.alternateBands, axis.plotLinesAndBands], function (coll) {
+		each([axis.ticks, axis.minorTicks, axis.alternateBands], function (coll) {
 			destroyObjectProperties(coll);
 		});
+		i = plotLinesAndBands.length;
+		while (i--) { // #1975
+			plotLinesAndBands[i].destroy();
+		}
 
 		// Destroy local variables
 		each(['stackTotalGroup', 'axisLine', 'axisGroup', 'gridGroup', 'labelGroup', 'axisTitle'], function (prop) {
@@ -9997,7 +10000,7 @@ Legend.prototype = {
 			itemStyle = legend.itemStyle,
 			itemHiddenStyle = legend.itemHiddenStyle,
 			padding = legend.padding,
-			itemDistance = horizontal ? pick(options.itemDistance, 8) : 0, // docs
+			itemDistance = horizontal ? pick(options.itemDistance, 8) : 0,
 			ltr = !options.rtl,
 			itemHeight,
 			widthOption = options.width,
@@ -10734,12 +10737,8 @@ Chart.prototype = {
 				each(axes, function (axis) {
 					axis.setScale();
 				});
-			} else {
-				// build stacks
-				each(axes, function (axis) {
-					axis.buildStacks();
-				});
 			}
+
 			chart.adjustTickAmounts();
 			chart.getMargins();
 
@@ -13019,7 +13018,7 @@ Series.prototype = {
 			yData = [],
 			zData = [],
 			dataLength = data ? data.length : [],
-			turboThreshold = pick(options.turboThreshold, 1000), // docs: 0 to disable
+			turboThreshold = pick(options.turboThreshold, 1000),
 			pt,
 			pointArrayMap = series.pointArrayMap,
 			valueCount = pointArrayMap && pointArrayMap.length,
@@ -13369,11 +13368,13 @@ Series.prototype = {
 			}
 
 			// Initialize StackItem for this x
-			if (oldStacks[key] && oldStacks[key][x]) {
-				stacks[key][x] = oldStacks[key][x];
-				stacks[key][x].total = null;
-			} else if (!stacks[key][x]) {
-				stacks[key][x] = new StackItem(yAxis, yAxis.options.stackLabels, isNegative, x, stackOption, stacking);
+			if (!stacks[key][x]) {
+				if (oldStacks[key] && oldStacks[key][x]) {
+					stacks[key][x] = oldStacks[key][x];
+					stacks[key][x].total = null;
+				} else {
+					stacks[key][x] = new StackItem(yAxis, yAxis.options.stackLabels, isNegative, x, stackOption, stacking);
+				}
 			}
 
 			// If the StackItem doesn't exist, create it first
@@ -13485,7 +13486,7 @@ Series.prototype = {
 			dataLength = points.length,
 			hasModifyValue = !!series.modifyValue,
 			i,
-			pointPlacement = options.pointPlacement, // docs: accept numbers
+			pointPlacement = options.pointPlacement,
 			dynamicallyPlaced = pointPlacement === 'between' || isNumber(pointPlacement),
 			threshold = options.threshold;
 
@@ -15398,7 +15399,8 @@ var ColumnSeries = extendClass(Series, {
 
 		var series = this,
 			options = series.options,
-			xAxis = this.xAxis,
+			xAxis = series.xAxis,
+			yAxis = series.yAxis,
 			reversedXAxis = xAxis.reversed,
 			stackKey,
 			stackGroups = {},
@@ -15411,10 +15413,11 @@ var ColumnSeries = extendClass(Series, {
 		if (options.grouping === false) {
 			columnCount = 1;
 		} else {
-			each(series.yAxis.series, function (otherSeries) { // use Y axes separately, #642
-				var otherOptions = otherSeries.options;
+			each(series.chart.series, function (otherSeries) {
+				var otherOptions = otherSeries.options,
+					otherYAxis = otherSeries.yAxis;
 				if (otherSeries.type === series.type && otherSeries.visible &&
-						series.options.group === otherOptions.group) { // used in Stock charts navigator series
+						yAxis.len === otherYAxis.len && yAxis.pos === otherYAxis.pos) {  // #642, #2086
 					if (otherOptions.stacking) {
 						stackKey = otherSeries.stackKey;
 						if (stackGroups[stackKey] === UNDEFINED) {
@@ -17395,31 +17398,17 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 					'L',
 					crispX + halfWidth, bottomBox,
 					'L',
-					crispX - halfWidth, bottomBox
-				];
-				if (hasTopWhisker) {
-					path.push(
-						'M',
-						crispX, 
-						topBox,
-						'L',
-						crispX, 
-						mathRound(point.plotY)
-					);
-				}
-				if (hasBottomWhisker) {
-					path.push(
-						'M',
-						crispX, 
-						bottomBox,
-						'L',
-						crispX, 
-						mathRound(point.yBottom)
-					);
-				}
-				path.push(
+					crispX - halfWidth, bottomBox,
+					'M',
+					crispX, topBox,
+					'L',
+					crispX, hasTopWhisker ? mathRound(point.plotY) : topBox, // #460, #2094
+					'M',
+					crispX, bottomBox,
+					'L',
+					crispX, hasBottomWhisker ? mathRound(point.yBottom) : bottomBox, // #460, #2094
 					'Z'
-				);
+				];
 
 				if (graphic) {
 					graphic.animate({ d: path });
@@ -17457,7 +17446,7 @@ defaultPlotOptions.flags = merge(defaultPlotOptions.column, {
 	pointRange: 0, // #673
 	//radius: 2,
 	shape: 'flag',
-	stackDistance: 12, // docs: new default
+	stackDistance: 12,
 	states: {
 		hover: {
 			lineColor: 'black',
@@ -17883,7 +17872,7 @@ extend(defaultOptions, {
 		trackBorderColor: '#CCC',
 		trackBorderWidth: 1,
 		// trackBorderRadius: 0
-		liveRedraw: hasSVG && !isTouchDevice // docs: new default
+		liveRedraw: hasSVG && !isTouchDevice
 	}
 });
 /*jslint white:false */
@@ -19194,7 +19183,7 @@ RangeSelector.prototype = {
 		// handle changes in the input boxes
 		input.onchange = function () {
 			var inputValue = input.value,
-				value = (options.inputDateParser || Date.parse)(inputValue), // docs: dateParser for inputDateFormat (http://jsfiddle.net/highcharts/G7azG/)
+				value = (options.inputDateParser || Date.parse)(inputValue),
 				extremes = chart.xAxis[0].getExtremes();
 
 			// If the value isn't parsed directly to a value by the browser's Date.parse method,
@@ -20096,8 +20085,8 @@ Point.prototype.tooltipFormatter = function (pointFormat) {
 					tickPixelIntervalOption = xAxis.options.tickPixelInterval;
 					
 				// The positions are not always defined, for example for ordinal positions when data
-				// has regular interval (#1557)
-				if (!positions || positions.length === 1 || min === UNDEFINED) {
+				// has regular interval (#1557, #2090)
+				if (!positions || positions.length < 3 || min === UNDEFINED) {
 					return getTimeTicks(normalizedInterval, min, max, startOfWeek);
 				}
 				
