@@ -1,5 +1,5 @@
 /*
- Highstock JS v1.3.4 (2013-08-02)
+ Highstock JS v1.3.5 (2013-08-23)
  MooTools adapter
 
  (c) 2010-2013 Torstein Hønsi
