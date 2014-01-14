@@ -2908,10 +2908,10 @@ if (CanvasRenderingContext2D) {
 		});
 	}
 }/**
- * @license Highstock JS v1.3.7 (2013-10-24)
+ * @license Highstock JS v1.3.8 (2014-01-09)
  * CanVGRenderer Extension module
  *
- * (c) 2011-2012 Torstein Hønsi, Erik Olsson
+ * (c) 2011-2012 Torstein Honsi, Erik Olsson
  *
  * License: www.highcharts.com/license
  */
