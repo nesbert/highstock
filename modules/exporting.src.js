@@ -1,5 +1,5 @@
 /**
- * @license Highstock JS v1.3.8 (2014-01-09)
+ * @license Highstock JS v1.3.9 (2014-01-15)
  * Exporting module
  *
  * (c) 2010-2014 Torstein Honsi
@@ -167,7 +167,7 @@ Highcharts.post = function (url, data, formAttributes) {
 		method: 'post',
 		action: url,
 		enctype: 'multipart/form-data'
-	}, formAttributes), { // docs
+	}, formAttributes), {
 		display: NONE
 	}, doc.body);
 
@@ -326,7 +326,7 @@ extend(Chart.prototype, {
 
 	/**
 	 * Submit the SVG representation of the chart to the server
-	 * @param {Object} options Exporting options. Possible members are url, type and width.
+	 * @param {Object} options Exporting options. Possible members are url, type, width and formAttributes.
 	 * @param {Object} chartOptions Additional chart options for the SVG representation of the chart
 	 */
 	exportChart: function (options, chartOptions) {
